@@ -1,10 +1,10 @@
 namespace Main;
 
 public static class Program {
-	public static string[] Vn = { "S", "B", "L" };
-	public static string[] Vt = { "a", "b", "c" };
+	public static readonly string[] Vn = { "S", "B", "L" };
+	public static readonly string[] Vt = { "a", "b", "c" };
 
-	public static string[,] P = {
+	public static readonly string[,] P = {
 		{ "S", "aB" },
 		{ "B", "bB" },
 		{ "B", "cL" },
@@ -13,13 +13,11 @@ public static class Program {
 		{ "L", "b" }
 	};
 
-	public static void Main(string[] args) {
-		var grammar = new Grammar(Vn, Vt, P, "S");
+	public static void Main() {
+		Grammar grammar = new(Vn, Vt, P, "S");
 
-		Console.WriteLine(grammar.GenerateString());
-		Console.WriteLine(grammar.GenerateString());
-		Console.WriteLine(grammar.GenerateString());
-		Console.WriteLine(grammar.GenerateString());
-		Console.WriteLine(grammar.GenerateString());
+		for (int i = 0; i < 20; i++) {
+			Console.WriteLine(grammar.GenerateString());
+		}
 	}
 }

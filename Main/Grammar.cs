@@ -32,28 +32,27 @@ public class Grammar {
 	}
 
 	public string GenerateString() {
-		var    rand = new Random();
-		string str  = _S;
-
-		bool shouldIterate = true;
+		var    rand          = new Random();
+		string str           = _S;
+		bool   shouldIterate = true;
 
 		while (shouldIterate) {
 			shouldIterate = false;
 
-			foreach (char c in str) {
-				if (_isNonTerminal(c.ToString()) || c == 'S') {
+			foreach (char character in str) {
+				if (_isNonTerminal(character.ToString()) || character == 'S') {
 					shouldIterate = true;
 
 					var matches = new List<string>();
 
 					foreach (var ls in _P) {
-						if (ls[0].Contains(c.ToString())) {
+						if (ls[0].Contains(character.ToString())) {
 							matches.Add(ls[1]);
 						}
 					}
 
 					str = str.Replace(
-						c.ToString(),
+						character.ToString(),
 						matches[rand.Next(0, matches.Count)]
 					);
 				}
@@ -64,6 +63,12 @@ public class Grammar {
 	}
 
 	public FiniteAutomaton ToFiniteAutomaton() {
-		return new FiniteAutomaton();
+		var p = new List<KeyValuePair<char, string>>();
+
+		foreach (var prod in _P) {
+			p.Add(new KeyValuePair<char, string>(prod[0][0], prod[1]));
+		}
+
+		return new FiniteAutomaton(_Vt.Select(t => t[0]).ToList(), _Vn, p);
 	}
 }
