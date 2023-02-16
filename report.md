@@ -51,6 +51,9 @@ GenerateString method would randomly generate a string of the provided language.
 a random transformation (or one in case there are no more matching) defined in Productions if it is non-terminal. If it has no non-terminal
 symbols, then the string is returned.
 
+Finite Automaton diagram:\
+![diagram.png](diagram.png)
+
 ```c#
 public string GenerateString() {
 		var    rand          = new Random();
