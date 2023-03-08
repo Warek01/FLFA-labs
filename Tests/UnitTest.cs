@@ -6,7 +6,7 @@ namespace Tests;
 
 public static class UnitTest {
 	private static readonly Grammar Grammar = new(
-		Program.Aphabet, 
+		Program.Alphabet, 
 		Program.NrOfStates, 
 		Program.FinalStates,
 		Program.Transitions

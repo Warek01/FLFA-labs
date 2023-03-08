@@ -1,187 +1,216 @@
-# Intro to formal languages. Regular grammars. Finite Automata.
+# Determinism in Finite Automata. Conversion from NDFA 2 DFA. Chomsky Hierarchy.
 
 ### Course: Formal Languages & Finite Automata
+
 ### Author: Dobrojan Alexandru (FAF-212)
 
 ----
 
 ## Theory
-This laboratory is meant to teach me the basics of how formal languages work and how they can be interpreted in code.\
-A formal language (in software engineering context) consists of an alphabet, or a set of allowed symbols, grammar, or a set of rules how to
-composite symbols of alphabet in a meaningful and understandable by a machine way and vocabulary that is a set of valid (allowed) words.\
-Constructing words consists of starting from an initial state (or rule) and using a transition defined by Productions part of grammar to get to
-the next alphabet (terminal) character or one or more syntactic variables (non-terminal symbols). The word is done when no non-terminal symbols
-remain in our string.\
-In order to find matching patterns of a formal language and check if a word or set of words belong to that language, we can use such concept as
-Finite Automata, or Finite Automaton (singular). A Finite Automaton is a structure with members similar to a formal language that serves one reason - 
-to validate an input string. For that, Automaton constructs a graph of states that are unidirectional or bidirectional coupled by transitions,
-transitions are the way of how to represent Grammar productions in graph, and iterates over that graph if the pattern matches. And if some character
-cannot be transitioned by that graph, then the word does not belong to that formal language.
 
+In this laboratory I have to apply my understanding of Non-deterministic Finite Automata and classification of grammars.
+The problem of NFAs is that a computer
+cannot solve explicitly it without some sort of processing of the grammar, I.e. it can get stuck into infinite loops or
+generate wrong output.\
+In order to solve this issue, I have to determine if the given grammar will lead to a non-deterministic Finite Automaton
+and process it so it will become
+a deterministic one. Determining a basic NFA is easy since we can basically check if we have 2 or more transitions with
+the same value but different states,
+and convert these transitions so they will lead to next states and become different.\
+Chomsky classification is a hierarchy of formal grammars used to describe the structure of languages. It was introduced
+by linguist Noam Chomsky in the 1950s and
+categorizes grammars into four types, from the simplest to the most complex: Type-3 (Regular), Type-2 (Context-Free),
+Type-1 (Context-Sensitive),
+and Type-0 (Unrestricted). Each type has a set of rules and restrictions that define the class of languages it can
+generate.
 
 ## Objectives:
 
-1. Understand what a language is and what it needs to have in order to be considered a formal one.
+1. Understand what an automaton is and what it can be used for.
 
-2. Provide the initial setup for the evolving project that you will work on during this semester. I said project because usually at lab works, I encourage/impose students to treat all the labs like stages of development of a whole project. Basically you need to do the following:
+2. Continuing the work in the same repository and the same project, the following need to be added:
+   a. Provide a function in your grammar type/class that could classify the grammar based on Chomsky hierarchy.
 
-   a. Create a local && remote repository of a VCS hosting service (let us all use Github to avoid unnecessary headaches);
+   b. For this you can use the variant from the previous lab.
 
-   b. Choose a programming language, and my suggestion would be to choose one that supports all the main paradigms;
+3. According to your variant number (by universal convention it is register ID), get the finite automaton definition and
+   do the following tasks:
 
-   c. Create a separate folder where you will be keeping the report. This semester I wish I won't see reports alongside source code files, fingers crossed;
+   a. Implement conversion of a finite automaton to a regular grammar.
 
-3. According to your variant number (by universal convention it is register ID), get the grammar definition and do the following tasks:
+   b. Determine whether your FA is deterministic or non-deterministic.
 
-   a. Implement a type/class for your grammar;
+   c. Implement some functionality that would convert an NDFA to a DFA.
 
-   b. Add one function that would generate 5 valid strings from the language expressed by your given grammar;
+   d. Represent the finite automaton graphically (Optional, and can be considered as a __*bonus point*__):
 
-   c. Implement some functionality that would convert and object of type Grammar to one of type Finite Automaton;
+    - You can use external libraries, tools or APIs to generate the figures/diagrams.
 
-   d. For the Finite Automaton, please add a method that checks if an input string can be obtained via the state transition from it;
-
+    - Your program needs to gather and send the data about the automaton and the lib/tool/API return the visual
+      representation.
 
 ## Implementation description
 
-My implementation treats Grammar and Finite Automaton as two data structures that can be mutually converted.\
-Grammar is closer to the mathematical representation by defining its 4 main components - the set of terminal characters, non-terminal characters,
-set of Productions and the starting character. The constructor and converting to Finite Automaton is not important to us.
-GenerateString method would randomly generate a string of the provided language. What is does iterate through each character and apply 
-a random transformation (or one in case there are no more matching) defined in Productions if it is non-terminal. If it has no non-terminal
-symbols, then the string is returned.
+In this laboratory I overhauled the code from previous laboratory so I have a stronger foundation to work with. Now I
+represent each state as a simple object knowing its
+transitions to next states and transitions are represented as (q_n, value) -> q_m, or in my case From: int, To: int,
+Value: string. Verification of NFA is did just
+as mentioned in the theory, checking if a state has 2 or more transitions with the same value but to different states
+and used a heuristic algorithm to transform
+each transition also as mentioned in the theory.
 
-Finite Automaton diagram:\
-![diagram.png](diagram.png)
+Here is the functions that checks if the Automaton is Non-Deterministic and transforms it in-place:
 
-```c#
-public string GenerateString() {
-		var    rand          = new Random();
-		string str           = _S;
-		bool   shouldIterate = true;
+```cs
+ private void _convertToDeterministic() {
+     foreach (State state in _states) {
+         var transitionsToAdd    = new List<KeyValuePair<string, State>>();
+         var transitionsToRemove = new List<KeyValuePair<string, State>>();
 
-		while (shouldIterate) {
-			shouldIterate = false;
+         foreach (var transition1 in state.Transitions) {
+             foreach (var transition2 in state.Transitions) {
+                 if (Equals(transition1, transition2)) {
+                     continue;
+                 }
 
-			foreach (char character in str) {
-				if (_isNonTerminal(character.ToString()) || character == 'S') {
-					shouldIterate = true;
+                 if (transition1.Key == transition2.Key) {
+                     var t = transition2.Value == state ? transition1 : transition2;
+                     foreach (var transition in t.Value.Transitions) {
+                         transitionsToAdd.Add(
+                             new KeyValuePair<string, State>(t.Key + transition.Key, transition.Value)
+                         );
+                     }
 
-					var matches = new List<string>();
+                     transitionsToRemove.Add(t);
+                 }
+             }
+         }
 
-					foreach (var ls in _P) {
-						if (ls[0].Contains(character.ToString())) {
-							matches.Add(ls[1]);
-						}
-					}
+         state.Transitions.AddRange(transitionsToAdd);
 
-					str = str.Replace(
-						character.ToString(),
-						matches[rand.Next(0, matches.Count)]
-					);
-				}
-			}
-		}
-
-		return str;
-	}
+         foreach (var transition in transitionsToRemove) {
+             state.Transitions.Remove(transition);
+         }
+     }
+ }
 ```
-And here is how it used in program
-```c#
-namespace Main;
 
-public static class Program {
-	public static readonly string[] Vn = { "S", "B", "L" };
-	public static readonly string[] Vt = { "a", "b", "c" };
+Here is how I check if string belongs to language:
 
-	public static readonly string[,] P = {
-		{ "S", "aB" },
-		{ "B", "bB" },
-		{ "B", "cL" },
-		{ "L", "cL" },
-		{ "L", "aS" },
-		{ "L", "b" }
-	};
-
-	public static void Main() {
-		Grammar grammar = new(Vn, Vt, P, "S");
-
-		for (int i = 0; i < 20; i++) {
-			Console.WriteLine(grammar.GenerateString());
-		}
-	}
+```cs
+public bool StringBelongToLanguage(string str) {
+   State currentState = _states[0];
+   var   position     = 0;
+   
+   while (position < str.Length) {
+      var newStateFound = false;
+   
+      foreach (var transition in currentState.Transitions) {
+          if (!str[position..].StartsWith(transition.Key)) {
+              continue;
+          }
+   
+          currentState  =  transition.Value;
+          position      += transition.Key.Length;
+          newStateFound =  true;
+          break;
+      }
+   
+      if (!newStateFound) {
+          return false;
+      }
+   }
+   
+   return _finalStates.Contains(currentState);
 }
 ```
-**Result:**\
-![20-strings.png](20-strings.png)
 
-Finite Automaton is similar to how it was described in theory. It consists of a set of states (each state is an instance of State class to make it
-easier to construct graph and iterate it, they can be represented as strings or numbers also), alphabet (terminal symbols), non-terminal symbols and
-the state names (again, not necessary but they'll make our life easier). At constructing time we make the states list that will represent our graph,
-each state knows its previous and next states and its transition and also have a type - start, intermediate or final.
-```c#
-public class FiniteAutomaton {
-	private class State {
-		public enum StateType {
-			Start,
-			Intermediate,
-			Final
-		}
+Here I draw the diagram using a python program that I wrote and invoked it from the Main method of my C# program
 
-		public List<string> Transitions { get; init; } = new();
-		public char         Key         { get; init; }
-		public StateType    Type        { get; init; }
-	}
+```csharp
+// Draws the automaton diagram using a python library and saves it to file
+ private static void DrawGraph() {
+     try {
+         var dataset = Transitions.Aggregate(
+             "",
+             (current, transition) => current + $" {transition.From} {transition.To} {transition.Value}"
+         );
 
-	private readonly List<char>   _alphabet;
-	private readonly List<string> _nonTerminals;
-	private readonly List<State>  _states;
-	private readonly List<char>   _stateNames;
+         ProcessStartInfo info = new() {
+             FileName               = "python3",
+             Arguments              = $"/home/warek/RiderProjects/FLFA-Labs/main.py {dataset}",
+             RedirectStandardOutput = false,
+             RedirectStandardError  = false,
+             RedirectStandardInput  = false,
+             UseShellExecute        = false,
+             CreateNoWindow         = true
+         };
 
-    ...
+         using Process process = new() {
+             StartInfo = info
+         };
+
+         process.Start();
+         process.WaitForExit();
+     }
+     catch (Exception exception) {
+         Console.WriteLine("Something went wrong:");
+         Console.WriteLine(exception.Message);
+     }
+ }
 ```
 
-The method StringBelongToLanguage iterates through the states graph searching if transitions can be made and if each characters belongs to alphabet
-(and each non-terminal to non-terminals also). It is constructing a string meant to store the current string that will have to be identical
-to input string in the end to match.
-```c#
-public bool StringBelongToLanguage(string str) {
-		var    currentState = _findState('S')!;
-		string s            = "";
+Python program invoked
 
-		foreach (char character in str) {
-			if (
-				(currentState.Type == State.StateType.Final && s.Length != str.Length)
-				|| !_isValidCharacter(character)
-			) {
-				return false;
-			}
+```python
+import sys
+import matplotlib.pyplot as plt
+import networkx as nx
 
-			currentState = _nextState(character, currentState);
+G = nx.DiGraph()
+dataset = []
+edge_labels = {}
 
-			if (currentState is null) {
-				return false;
-			}
+for i in range(1, len(sys.argv), 3):
+	dataset += [[sys.argv[i], sys.argv[i + 1], sys.argv[i + 2]]]
 
-			s += character;
-		}
+for data in dataset:
+	FROM = data[0]
+	TO = data[1]
+	VALUE = data[2]
 
-		return currentState.Type == State.StateType.Final;
-	}
+	edge_labels[(FROM, TO)] = VALUE
+	G.add_edge(FROM, TO, label=VALUE)
+
+nx.set_edge_attributes(G, {('A', 'B'): {'color': 'red'}})
+
+pos = nx.spring_layout(G)
+plt.figure()
+nx.draw(
+	G, pos, edge_color='black', width=2,
+	node_size=2000, node_color='pink', alpha=1,
+	labels={node: node for node in G.nodes()}
+)
+
+nx.draw_networkx_edge_labels(
+	G, pos,
+	edge_labels=edge_labels,
+	font_color='blue'
+)
+
+plt.savefig('/home/warek/RiderProjects/FLFA-Labs/plot.png')
+plt.show()
 ```
 
 ## Conclusions / Screenshots / Results
+Converting NFA to DFA in programming turned out not to be that hard, but it is relatively inefficient in terms of performance, since many loops and checks 
+have to be performed.
 
-Data structures and their methods are unit tested in a separate project of the same solution using xUnit unit testing library. Here is an example of a test:\
-![test-1.png](test-1.png)\
-And here is the tests result:\
-![test-2.png](test-2.png)\
+![graphs.webp](graphs.webp)
 
-In conclusion I can say that Grammar and Finite Automata are a strong part in understanding how programming languages work (as well as scripting, markup,
-regular expressions and other DSLs). Constructing a good Grammar and Finite Automaton is a tedious and hard task since it involves 
-strong domain knowledge, programming language knowledge, knowledge of edge cases and lots of testing. I think that programming languages parsers
-work in a similar (but much more performance optimized) way as the implemented above code.
+![plot.png](plot.png)
 
+![graph-screenshot.png](graph-screenshot.png)
 
 ## References
 

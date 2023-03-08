@@ -14,13 +14,13 @@ public static class Program {
 			new(0, "b", 2)
 		});
 
-	public static readonly List<char> Aphabet     = new(new[] { 'a', 'b', 'c' });
+	public static readonly List<char> Alphabet     = new(new[] { 'a', 'b', 'c' });
 	public const           int        NrOfStates  = 4;
 	public static readonly List<int>  FinalStates = new(new[] { 3 });
 
 	public static void Main() {
 		Grammar grammar = new(
-			Aphabet,
+			Alphabet,
 			NrOfStates,
 			FinalStates,
 			Transitions
