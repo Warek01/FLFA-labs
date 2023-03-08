@@ -37,36 +37,78 @@ public class FiniteAutomaton {
 				throw new Exception($"Unknown state {transition.From} -> {transition.To}");
 			}
 
-			stateFrom.Transitions.Add(new KeyValuePair<char, State>(transition.Value, stateTo));
+			stateFrom.Transitions.Add(new KeyValuePair<string, State>(transition.Value, stateTo));
+		}
+		
+		_convertToDeterministic();
+
+		// Sort transitions list so they start with the most long ones
+		foreach (State state in _states) {
+			state.Transitions.Sort(
+				(a, b) => a.Key.Length == b.Key.Length
+					? 0
+					: a.Key.Length > b.Key.Length
+						? -1
+						: 1
+			);
+		}
+
+		for (int i = 0; i < _states.Count; i++) {
+			var state = _states[i];
+		
+			foreach (var t in state.Transitions) {
+				Console.WriteLine($"({i}, {t.Key}) -> {_states.FindIndex(a => a == t.Value)}");
+			}
 		}
 	}
 
-	private bool _isValidCharacter(char character) {
-		return _alphabet.Contains(character);
-	}
+	private void _convertToDeterministic() {
+		foreach (State state in _states) {
+			var transitionsToAdd    = new List<KeyValuePair<string, State>>();
+			var transitionsToRemove = new List<KeyValuePair<string, State>>();
 
+			foreach (var transition1 in state.Transitions) {
+				foreach (var transition2 in state.Transitions) {
+					if (Equals(transition1, transition2)) {
+						continue;
+					}
+
+					if (transition1.Key == transition2.Key) {
+						var t = transition2.Value == state ? transition1 : transition2;
+						foreach (var transition in t.Value.Transitions) {
+							transitionsToAdd.Add(
+								new KeyValuePair<string, State>(t.Key + transition.Key, transition.Value)
+							);
+						}
+
+						transitionsToRemove.Add(t);
+					}
+				}
+			}
+
+			state.Transitions.AddRange(transitionsToAdd);
+
+			foreach (var transition in transitionsToRemove) {
+				state.Transitions.Remove(transition);
+			}
+		}
+	}
 
 	public bool StringBelongToLanguage(string str) {
 		State currentState = _states[0];
 		var   position     = 0;
 
 		while (position < str.Length) {
-			var character = str[position];
-
-			if (!_isValidCharacter(character)) {
-				return false;
-			}
-
 			var newStateFound = false;
 
 			foreach (var transition in currentState.Transitions) {
-				if (transition.Key != character) {
+				if (!str[position..].StartsWith(transition.Key)) {
 					continue;
 				}
 
-				currentState = transition.Value;
-				position++;
-				newStateFound = true;
+				currentState  =  transition.Value;
+				position      += transition.Key.Length;
+				newStateFound =  true;
 				break;
 			}
 
@@ -74,7 +116,7 @@ public class FiniteAutomaton {
 				return false;
 			}
 		}
-
+ 
 		return _finalStates.Contains(currentState);
 	}
 

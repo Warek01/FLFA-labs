@@ -1,5 +1,5 @@
 namespace Main.classes;
 
 public class State {
-	public List<KeyValuePair<char, State>> Transitions = new();
+	public readonly List<KeyValuePair<string, State>> Transitions = new();
 }

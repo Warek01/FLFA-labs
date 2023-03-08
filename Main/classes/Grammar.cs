@@ -37,7 +37,7 @@ public class Grammar {
 				throw new Exception($"Unknown state {transition.From} -> {transition.To}");
 			}
 
-			stateFrom.Transitions.Add(new KeyValuePair<char, State>(transition.Value, stateTo));
+			stateFrom.Transitions.Add(new KeyValuePair<string, State>(transition.Value, stateTo));
 		}
 	}
 
@@ -46,10 +46,15 @@ public class Grammar {
 		var   str          = "";
 		State currentState = _states[0];
 
-		while (!_finalStates.Contains(currentState)) {
+		while (true) {
 			var transition = currentState.Transitions[rand.Next(0, currentState.Transitions.Count)];
 			str          += transition.Key;
 			currentState =  transition.Value;
+
+			// 50% chance to stop at final state
+			if (_finalStates.Contains(currentState) && rand.NextDouble() < .50) {
+				break;
+			}
 		}
 
 		return str;
