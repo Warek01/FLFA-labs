@@ -34,27 +34,34 @@ public static class Program {
 	}
 
 
+	// Draws the automaton diagram using a python library and saves it to file
 	private static void DrawGraph() {
-		var dataset = Transitions.Aggregate(
-			"",
-			(current, transition) => current + $" {transition.From} {transition.To} {transition.Value}"
-		);
+		try {
+			var dataset = Transitions.Aggregate(
+				"",
+				(current, transition) => current + $" {transition.From} {transition.To} {transition.Value}"
+			);
 
-		ProcessStartInfo info = new() {
-			FileName               = "python3",
-			Arguments              = $"/home/warek/PycharmProjects/test/main.py {dataset}",
-			RedirectStandardOutput = false,
-			RedirectStandardError  = false,
-			RedirectStandardInput  = false,
-			UseShellExecute        = false,
-			CreateNoWindow         = true
-		};
+			ProcessStartInfo info = new() {
+				FileName               = "python3",
+				Arguments              = $"/home/warek/RiderProjects/FLFA-Labs/main.py {dataset}",
+				RedirectStandardOutput = false,
+				RedirectStandardError  = false,
+				RedirectStandardInput  = false,
+				UseShellExecute        = false,
+				CreateNoWindow         = true
+			};
 
-		using Process process = new() {
-			StartInfo = info
-		};
+			using Process process = new() {
+				StartInfo = info
+			};
 
-		process.Start();
-		process.WaitForExit();
+			process.Start();
+			process.WaitForExit();
+		}
+		catch (Exception exception) {
+			Console.WriteLine("Something went wrong:");
+			Console.WriteLine(exception.Message);
+		}
 	}
 }
