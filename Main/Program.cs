@@ -43,8 +43,8 @@ public static class Program {
 			);
 
 			ProcessStartInfo info = new() {
-				FileName               = "python3",
-				Arguments              = $"/home/warek/RiderProjects/FLFA-Labs/main.py {dataset}",
+				FileName               = "py",
+				Arguments              = $@"C:\Users\warek\RiderProjects\FLFA-Labs\main.py {dataset}",
 				RedirectStandardOutput = false,
 				RedirectStandardError  = false,
 				RedirectStandardInput  = false,

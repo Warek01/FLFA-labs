@@ -33,5 +33,5 @@ nx.draw_networkx_edge_labels(
 	font_color='blue'
 )
 
-plt.savefig('/home/warek/RiderProjects/FLFA-Labs/plot.png')
+plt.savefig('C:\\Users\\warek\\RiderProjects\\FLFA-Labs\\plot.png')
 plt.show()
