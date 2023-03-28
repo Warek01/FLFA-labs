@@ -8,7 +8,7 @@ public static class Program {
 	public static void Main() {
 		Lexer lexer = new(@"
 			let a = 123;
-			func test() {}
+			func test () {}
 		");
 		
 		while (true) {
