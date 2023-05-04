@@ -1,4 +1,4 @@
-# Lexer & Scanner
+# Chomsky Normal Form
 
 ### Course: Formal Languages & Finite Automata
 
@@ -8,286 +8,277 @@
 
 ## Theory
 
-The term lexer comes from lexical analysis which, in turn, represents the process of extracting lexical tokens from a
-string of characters. There are several alternative names for the mechanism called lexer, for example tokenizer or
-scanner. The lexical analysis is one of the first stages used in a compiler/interpreter when dealing with programming,
-markup or other types of languages. The tokens are identified based on some rules of the language and the products that
-the lexer gives are called lexemes. So basically the lexer is a stream of lexemes. Now in case it is not clear what's
-the difference between lexemes and tokens, there is a big one. The lexeme is just the byproduct of splitting based on
-delimiters, for example spaces, but the tokens give names or categories to each lexeme. So the tokens don't retain
-necessarily the actual value of the lexeme, but rather the type of it and maybe some metadata.
+CNF stands for Chomsky Normal Form, which is a way of representing a context-free grammar (CFG) in a specific form.
+
+In CNF, every production rule has one of two forms:
+
+either a single non-terminal symbol produces two non-terminal symbols,
+
+or a single non-terminal symbol produces a single terminal symbol.
+
+This form makes parsing easier and more efficient, which is why many algorithms and parsers rely on grammars being in CNF. Converting a CFG to CNF involves breaking down longer production rules into smaller ones that fit the required forms.
+
+To convert a Context-Free Grammar (CFG) to Chomsky Normal Form (CNF), we need to follow a set of steps:
+
+Remove all ε-productions from the grammar.
+Remove all unit productions from the grammar.
+Convert all remaining productions to have either two non-terminals or a non-terminal and a terminal on the right-hand side.
+If a production has more than two non-terminals on the right-hand side, split it into multiple productions.
+After performing these steps, the resulting grammar will be in CNF.
 
 ## Objectives:
 
-1. Understand what lexical analysis [1] is.
-2. Get familiar with the inner workings of a lexer/scanner/tokenizer.
-3. Implement a sample lexer and show how it works.
+1. Learn about Chomsky Normal Form (CNF) [1].
+2. Get familiar with the approaches of normalizing a grammar.
+3. Implement a method for normalizing an input grammar by the rules of CNF.
+    1. The implementation needs to be encapsulated in a method with an appropriate signature (also ideally in an appropriate class/type).
+    2. The implemented functionality needs executed and tested.
+    3. A BONUS point will be given for the student who will have unit tests that validate the functionality of the project.
+    4. Also, another BONUS point would be given if the student will make the aforementioned function to accept any grammar, not only the one from the student's variant.
 
 ## Implementation description
 
-In this laboratory I implement a basic lexer/scanner in C# that accepts a list of predefined
-tokens. My lexer basically reads some input string character by character and based on what
-characters it reads it performs analysis. Here is how it works:
-
-First I define a class, where _input is the scanned string, _position is the current scan position
-in input, _readPosition is where the _position should move after creating a token, for example it will be
-3 after it processes a "let" keyword and _ch is the current character on _position.
-
+I organized all the related code in a class called Grammar. The Grammar initialization is quite 
+straightforward. I store productions grouped, rather than separated.
 ```csharp
-public partial class Lexer {
-	private string _input;
-	private int    _position     = 0;
-	private int    _readPosition = 0;
-	private char   _ch;
-```
+public Grammar(string[] nonTerminals, string[] terminals, KeyValuePair<string, string>[] productions) {
+    _nonTerminals = new(nonTerminals);
+    _terminals    = new(terminals);
 
-Next I define some basic logic for lexer, for example:
+    foreach (var pair in productions) {
+        var prod = _productions.Find(
+            p => p.Key == pair.Key
+        );
 
-Read the next character:
-
-```csharp
-	private void _readChar() {
-		if (_readPosition >= _input.Length) {
-			_ch = (char)0;
-		}
-		else {
-			_ch = _input[_readPosition];
-		}
-
-		_position = _readPosition;
-		_readPosition++;
-	}
-```
-
-Determine the _ch type, note that I consider _ as a letter so it can be used in pascal_case identifiers:
-
-```csharp
-	private bool IsOnLetter => _ch is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or '_';
-	private bool IsOnDigit  => _ch is >= '0' and <= '9';
-```
-
-And these are self-explanatory, I use these functions to firstly ignore all whitespace, since
-the statements will be semicolon delimited, read an identifier and an integer. Yet there is no
-logic to read floating point and negative numbers sadly.
-
-```csharp
-private string _readIdentifier() {
-		int pos = _position;
-
-		while (IsOnLetter) {
-			_readChar();
-		}
-
-		return _input.Substring(pos, _position - pos);
-	}
-
-	private void _skipWhitespace() {
-		while (_ch is ' ' or '\t' or '\n' or '\r') {
-			_readChar();
-		}
-	}
-
-	private string _readNumber() {
-		int pos = _position;
-
-		while (IsOnDigit) {
-			_readChar();
-		}
-
-		return _input.Substring(pos, _position - pos);
-	}
-```
-
-Next I declare in a separate file all the token types that my lexer will process,
-if a token does not math the token type, it will be assigned "Illegal" type and later
-cause a syntax error. Ideally TokenType should be a string enum, but C# does
-not support typed enums other than integers, so I create a static class that
-acts almost identically to a string enum.
-
-```csharp
-
-public static class TokenType {
-	public const string Illegal = "ILLEGAL";
-	public const string Eof     = "EOF";
-
-	// Identifiers + literals
-	public const string Ident = "IDENT";
-	public const string Int   = "INT";
-
-	// Operators
-	public const string Plus   = "+";
-	public const string Minus  = "-";
-	public const string Assign = "=";
-```
-
-Next I define a Token class that acts as a wrapper for token, where Type is the TokenType
-and literal is its code (raw) representation, for example for a variable Type will be TokenType.Ident and Literal -
-<variable_name>
-
-```csharp
-public class Token {
-	public string Type;
-	public string Literal;
-
-	public Token(string t, string l) =>
-		(Type, Literal) = (t, l);
+        if (prod.Key is null) {
+            _productions.Add(
+                new KeyValuePair<string, List<string>>(
+                    pair.Key, new List<string>(new[] { pair.Value })
+                )
+            );
+        }
+        else {
+            prod.Value.Add(pair.Value);
+        }
+    }
 }
 ```
 
-Next follows the scanning logic of the lexer, I define it in a separate file (that's why I am using
-partial class). First I initialize the token as Illegal, so if it will not be assigned in the subsequent
-switch statement it will automatically cause syntax error. Next I skip whitespace and start analyzing
-
+The normalization algorithm is divided into private subroutines:
 ```csharp
-
-public partial class Lexer {
-	public Token.Token NextToken() {
-		Token.Token token = new(TokenType.Illegal, _ch.ToString());
-
-		_skipWhitespace();
-
-		switch (_ch) {
-			case (char)0:
-				token = new(TokenType.Eof, "");
-				break;
-			case '=':
-				if (_peekChar() == '=') {
-					char ch = _ch;
-					_readChar();
-					token = new(TokenType.Eq, $"{ch}{_ch}");
-				}
-				else {
-					token = new(TokenType.Assign, _ch.ToString());
-				}
-
+public void Normalize() {
+    _eliminateEpsProductions();
+    _eliminateRenaming();
+    _eliminateInaccessibleSymbols();
+    _eliminateNonProductiveSymbols();
+    _eliminateUnusedNonTerminals();
+    _eliminateUnusedTerminals();
+    _eliminateDuplicateProd();
+}
 ```
 
-Here is an example of processing the bang operator de determine if its a part of negation, !&lt;variable&gt;
-or != (not equal) operators. The default case tries to read an identifier or a integer. If none
-of them pass, the default **INVALID** token is being returned.
-
+Here is how I eliminate Epsilon (empty) productions.
+I determine which production rule contains an empty transition and then change the 
+values in all other rules to contain the right value.
 ```csharp
-case '!':
-    if (_peekChar() == '=') {
-        char ch = _ch;
-        _readChar();
-        token = new(TokenType.Ne, $"{ch}{_ch}");
-    }
-    else {
-        token = new(TokenType.Bang, _ch.ToString());
+private void _eliminateEpsProductions() {
+    List<string> prodsToFix = new();
+
+    foreach (var prod in _productions) {
+        bool prodContainsEps = false;
+        foreach (var transition in prod.Value) {
+            if (transition == "ε") {
+                prodContainsEps = true;
+            }
+        }
+
+        if (!prodContainsEps) {
+            continue;
+        }
+
+        prod.Value.Remove("ε");
+        prodsToFix.Add(prod.Key);
     }
 
-    break;
-default:
-    if (IsOnLetter) {
-        string literal = _readIdentifier();
-        token = new(Keywords.Keywords.LookupIdent(literal), literal);
+    foreach (var prodToFix in prodsToFix) {
+        foreach (var prod in _productions) {
+            if (prod.Key == prodToFix) {
+                continue;
+            }
+
+            List<string> prodsToAdd = new();
+
+            foreach (var transition in prod.Value) {
+                if (!transition.Contains(prodToFix)) {
+                    continue;
+                }
+
+                foreach (var transToFix in _productions.Find(p => p.Key == prodToFix).Value) {
+                    prodsToAdd.Add(transToFix);
+                }
+            }
+
+            prod.Value.AddRange(prodsToAdd);
+        }
     }
-    else if (IsOnDigit) {
-        token = new(TokenType.Int, _readNumber());
-        return token;
-    }
+}
 ```
 
-And that's it. Here is an example of how it works. I define a sample input containing
-the syntax that I defined earlier and I get an output in format **&lt;TOKEN_TYPE&gt; &lt;Literal&gt;**
+Here I eliminate renamings (1 non-terminal -> 1 non-terminal).
+I simply check if the transition is to one non-terminal and inline the values,
+then remove the old transition.
+```csharp
+private void _eliminateRenaming() {
+    foreach (var prod in _productions) {
+        List<string> prodsToFix = new();
 
+        foreach (var transition in prod.Value) {
+            if (transition.Length == 1 && _nonTerminals.Contains(transition)) {
+                prodsToFix.Add(transition);
+            }
+        }
+
+        foreach (var transition in prodsToFix) {
+            prod.Value.Remove(transition);
+            prod.Value.AddRange(_productions.Find(p => p.Key == transition).Value);
+        }
+    }
+}
+```
+
+Here I eliminate inaccessible symbols.
+I basically do a DFS starting from start symbol S, put values into a Set to not repeat 
+ant then remove the production rules that have not been visited.
+```csharp
+private void _eliminateInaccessibleSymbols() {
+    HashSet<string> visited = new();
+    List<string>    queue   = new();
+
+    void Visit(string key, int depth) {
+        if (depth == _productions.Count) {
+            return;
+        }
+
+        visited.Add(key);
+        var current = _productions.Find(p => p.Key == key);
+
+        foreach (var transition in current.Value) {
+            foreach (var ch in transition) {
+                if (_nonTerminals.Contains(ch.ToString())) {
+                    Visit(ch.ToString(), depth + 1);
+                }
+            }
+        }
+    }
+
+    Visit("S", 0);
+
+    for (int i = 0; i < _productions.Count - visited.Count; i++) {
+        _productions.RemoveAt(
+            _productions.FindIndex(
+                p => !visited.Contains(p.Key)
+            )
+        );
+    }
+}
+```
+
+Here is how I eliminate unused Non-terminals after all the steps, the same is applied 
+for terminals.
+```csharp
+private void _eliminateUnusedNonTerminals() {
+    HashSet<string> used = new();
+
+    foreach (var pair in _productions) {
+        foreach (var transition in pair.Value) {
+            foreach (var ch in transition) {
+                if (_nonTerminals.Contains(ch.ToString())) {
+                    used.Add(ch.ToString());
+                }
+            }
+        }
+    }
+
+    List<string> newNonTerminals = new();
+
+    foreach (var symb in _nonTerminals) {
+        if (used.Contains(symb)) {
+            newNonTerminals.Add(symb);
+        }
+    }
+
+    _nonTerminals = newNonTerminals;
+}
+```
+
+Here is how I print the Grammar:
+```csharp
+public override string ToString() {
+    string str = "V_t = { ";
+
+    foreach (var terminal in _terminals) {
+        str += $"{terminal}{(terminal != _terminals.Last() ? "," : "")} ";
+    }
+
+    str += "}\nV_n = { ";
+
+    foreach (var nonTerminal in _nonTerminals) {
+        str += $"{nonTerminal}{(nonTerminal != _nonTerminals.Last() ? "," : "")} ";
+    }
+
+    str += "}\nP = {\n";
+
+    foreach (var prod in _productions) {
+        str += $"\t{prod.Key} → ";
+
+        foreach (var dest in prod.Value) {
+            str += $"{dest}{(dest != prod.Value.Last() ? "|" : "")}";
+        }
+
+        str += "\n";
+    }
+
+    str += "}\n";
+
+    return str;
+}
+```
+
+And this is basically my main program
 ```csharp
 public static class Program {
+	public static readonly string[] NonTerminalsSet = { "S", "A", "B", "D" };
+	public static readonly string[] TerminalsSet    = { "a", "b", "d" };
+
+	public static readonly KeyValuePair<string, string>[] ProductionsSet = {
+		new("S", "dB"),
+		new("S", "AB"),
+		new("A", "d"),
+		new("A", "dS"),
+		new("A", "aAaAb"),
+		new("A", "ε"),
+		new("B", "a"),
+		new("B", "aS"),
+		new("B", "A"),
+		new("D", "Aba"),
+	};
+
 	public static void Main() {
-		Lexer lexer = new(@"
-			let a = 123;
-			func test () {}
-		");
-		
-		while (true) {
-			Token token = lexer.NextToken();
-		
-			Console.WriteLine($"{token.Type} {token.Literal}");
-			
-			if (token.Type == TokenType.Eof) {
-				break;
-			} 
-		}
+		Grammar grammar = new(NonTerminalsSet, TerminalsSet, ProductionsSet);
+		Console.WriteLine(grammar);
+		grammar.Normalize();
+		Console.WriteLine(grammar);
 	}
 }
 ```
+
 
 ## Conclusions / Screenshots / Results
+In conclusion I can say that Chomsky Normal Form of a Grammar is a more concise way to 
+represent that grammar, allowing fitting that grammar into smaller bounds and making it more 
+easier to read than a non-normalized one. Plus it makes comparing grammars a lot easier to 
+determine if 2 grammars are equal. Normalization is not an easy task, especially as a computer algorithm 
+and is quite resource-demanding.
 
-The output:
-
-```
-LET let
-IDENT a
-= =
-INT 123
-; ;
-IDENT func
-IDENT test
-( (
-) )
-{ {
-} }
-EOF
-```
-
-In conclusion, writing a lexer in C# can be a challenging but rewarding task, as it provides a foundation for building
-more complex parsing and compilation tools. To write a lexer, it is important to understand the principles of lexical
-analysis, such as tokenization and regular expressions, and to choose appropriate data structures and algorithms to
-efficiently parse and analyze input. With the right tools and techniques, it is possible to create a robust and
-efficient lexer that can be used in a wide range of applications.
-
-
-## Testing
-
-Here is an example of unit testing my lexer
-```csharp
-public class UnitTest {
-	private readonly ITestOutputHelper _testOutputHelper;
-	public UnitTest(ITestOutputHelper testOutputHelper) {
-		_testOutputHelper = testOutputHelper;
-	}
-
-	[Fact]
-	private void TestInput() {
-		string input = @"
-			let a = 123;
-			func test () {}
-		";
-
-		KeyValuePair<string, string>[] expectedTokens = {
-			new KeyValuePair<string, string>(TokenType.Let, "let"),
-			new KeyValuePair<string, string>(TokenType.Ident, "a"),
-			new KeyValuePair<string, string>(TokenType.Assign, "="),
-			new KeyValuePair<string, string>(TokenType.Int, "123"),
-			new KeyValuePair<string, string>(TokenType.Semicolon, ";"),
-			new KeyValuePair<string, string>(TokenType.Ident, "func"),
-			new KeyValuePair<string, string>(TokenType.Ident, "test"),
-			new KeyValuePair<string, string>(TokenType.Lparen, "("),
-			new KeyValuePair<string, string>(TokenType.Rparen, ")"),
-			new KeyValuePair<string, string>(TokenType.Lbrace, "{"),
-			new KeyValuePair<string, string>(TokenType.Rbrace, "}"),
-			new KeyValuePair<string, string>(TokenType.Eof, ""),
-		};
-		
-		Lexer lexer = new(input);
-
-		Assert.NotNull(lexer);
-
-		int i = 0;
-
-		while (i < expectedTokens.Length) {
-			Token token = lexer.NextToken();
-			
-			_testOutputHelper.WriteLine($"{token.Type} {token.Literal}");
-			Assert.Equal(token.Type, expectedTokens[i].Key);
-			Assert.Equal(token.Literal, expectedTokens[i].Value);
-
-			i++;
-		}
-	}
-}
-```
-
-![unit-tests.png](unit-tests.png)
+Output (how it was and in Chomsky Normal Form):
+![output.png](output.png)
