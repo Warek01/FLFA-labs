@@ -31,6 +31,7 @@ public class Grammar {
 		_eliminateEpsProductions();
 		_eliminateRenaming();
 		_eliminateInaccessibleSymbols();
+		_eliminateNonProductiveSymbols();
 
 		_eliminateUnusedNonTerminals();
 		_eliminateUnusedTerminals();
@@ -158,6 +159,68 @@ public class Grammar {
 		}
 	}
 
+	private void _eliminateNonProductiveSymbols() {
+		var newNonTerminals = _cloneNonTerminals();
+		var newProd         = _cloneProductions();
+
+		for (int i = 0; i < _productions.Count; i++) {
+			var pair = _productions[i];
+
+			for (int j = 0; j < pair.Value.Count; j++) {
+				var transition = _productions[i].Value[j];
+
+				if (transition.Length == 1) {
+					continue;
+				}
+
+				foreach (var ch in transition) {
+					if (!_terminals.Contains(ch.ToString())) {
+						continue;
+					}
+
+					string? key = newProd.Find(
+						p => p.Value.Find(a => a == ch.ToString()) is not null
+					).Key;
+
+
+					if (key is null) {
+						string nonTerminal = _generateNotContaining(newNonTerminals);
+						newNonTerminals.Add(nonTerminal);
+						newProd.Add(
+							new KeyValuePair<string, List<string>>(nonTerminal, new(new[] { ch.ToString() }))
+						);
+
+						newProd[i].Value[j] = newProd[i].Value[j].Replace(ch.ToString(), nonTerminal);
+					}
+					else {
+						newProd[i].Value[j] =
+							newProd[i].Value[j].Replace(ch.ToString(), key);
+					}
+				}
+			}
+		}
+
+		_nonTerminals = newNonTerminals;
+		_productions  = newProd;
+	}
+
+	private string _generateNotContaining(List<string> list) {
+		int min = Convert.ToInt32('A');
+		int max = Convert.ToInt32('Z');
+
+		for (int i = min; i < max; i++) {
+			string strValue = Convert.ToChar(i).ToString();
+
+			if (list.Contains(strValue)) {
+				continue;
+			}
+
+			return strValue;
+		}
+
+		return Convert.ToChar(max).ToString();
+	}
+
 	private void _eliminateUnusedNonTerminals() {
 		HashSet<string> used = new();
 
@@ -181,6 +244,7 @@ public class Grammar {
 
 		_nonTerminals = newNonTerminals;
 	}
+
 	private void _eliminateUnusedTerminals() {
 		HashSet<string> used = new();
 
@@ -217,5 +281,17 @@ public class Grammar {
 			_productions[i].Value.Clear();
 			_productions[i].Value.AddRange(newTransitions[i]);
 		}
+	}
+
+	private List<KeyValuePair<string, List<string>>> _cloneProductions() {
+		return _productions.ToList();
+	}
+
+	private List<string> _cloneNonTerminals() {
+		return _nonTerminals.ToList();
+	}
+
+	private List<string> _cloneTerminals() {
+		return _terminals.ToList();
 	}
 }
