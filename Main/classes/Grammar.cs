@@ -32,7 +32,6 @@ public class Grammar {
 		_eliminateRenaming();
 		_eliminateInaccessibleSymbols();
 		_eliminateNonProductiveSymbols();
-
 		_eliminateUnusedNonTerminals();
 		_eliminateUnusedTerminals();
 		_eliminateDuplicateProd();
