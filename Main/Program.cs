@@ -1,35 +1,42 @@
-using Main.Classes;
+using Main.Classes.Exceptions.InvalidSyntax;
+using Main.classes.Graph;
+using Main.Classes.LispFormBuilder;
+using Main.classes.Parser;
+using Main.classes.ValueBuilder;
 
-namespace Main;
+Console.WriteLine("Input expression, for example 1 + 2 * 3 / (4 - 5)");
+Console.WriteLine("Input Q to exit");
 
-// V 10
-// Eliminate ε productions
-// Eliminate any renaming
-// Eliminate inaccessible symbols
-// Eliminate the non-productive symbols
-// Obtain the Chomsky Normal Form
+while (true) {
+	Console.Write("\nExpression: ");
+	var input = Console.ReadLine();
 
-public static class Program {
-	public static readonly string[] NonTerminalsSet = { "S", "A", "B", "D" };
-	public static readonly string[] TerminalsSet    = { "a", "b", "d" };
+	if (input == "Q") {
+		break;
+	}
 
-	public static readonly KeyValuePair<string, string>[] ProductionsSet = {
-		new("S", "dB"),
-		new("S", "AB"),
-		new("A", "d"),
-		new("A", "dS"),
-		new("A", "aAaAb"),
-		new("A", "ε"),
-		new("B", "a"),
-		new("B", "aS"),
-		new("B", "A"),
-		new("D", "Aba"),
-	};
+	try {
+		if (input is null) {
+			continue;
+		}
 
-	public static void Main() {
-		Grammar grammar = new(NonTerminalsSet, TerminalsSet, ProductionsSet);
-		Console.WriteLine(grammar);
-		grammar.Normalize();
-		Console.WriteLine(grammar);
+		var parser     = new Parser(input);
+		var expression = parser.Parse();
+		var graph      = expression.Accept(new Graph());
+		var value      = expression.Accept(new ValueBuilder());
+		var lispForm   = expression.Accept(new LispFormBuilder());
+
+
+		Console.ForegroundColor = ConsoleColor.Green;
+		Console.WriteLine(value);
+		Console.ResetColor();
+		Console.WriteLine(graph);
+		Console.WriteLine(lispForm);
+	}
+	catch (InvalidSyntaxException ex) {
+		Console.WriteLine(ex.Message);
+	}
+	catch (Exception ex) {
+		Console.WriteLine(ex);
 	}
 }
